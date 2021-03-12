@@ -171,7 +171,6 @@ class Game:
 		self.score = 0
 		self.start_time = time.time()
 		self.end_time = None
-		self.final_score = 0
 
 		# print("\n" + BREAK_STRING)
 		# print("Welcome to Danny's Solitaire!\n")
@@ -181,11 +180,8 @@ class Game:
 	def getFinalMetrics(self):
 		self.end_time = time.time()
 		self.game_duration = self.end_time - self.start_time
-		if self.gameWon():
-			time_penalty = int(game_duration % 10)
-			self.final_score = self.score - time_penalty
 
-		return self.final_score, self.moves, self.game_duration
+		return self.score, self.moves, self.game_duration
 
 	def gameWon(self):
 		return self.f.gameWon()
@@ -246,41 +242,52 @@ class Game:
 
 			else:
 				print("Error! No card could be moved from the Waste to the Foundation.")
+
 		elif "wt" in command and len(command) == 3:
 			try:
 				col = int(command[-1]) - 1
 			except ValueError:
 				print('Error! Invalid Tableau Value')
 			else:
-				if self.t.waste_to_tableau(self.sw, col):
-					self.score += 5
-					self.moves += 1
+				if col < 8:
+					if self.t.waste_to_tableau(self.sw, col):
+						self.score += 5
+						self.moves += 1
 
+					else:
+						print("Error! No card could be moved from the Waste to the Tableau column.")
 				else:
-					print("Error! No card could be moved from the Waste to the Tableau column.")
+					print('Error! Invaid Tableau Value')
 		elif "tf" in command and len(command) == 3:
 			try:
 				col = int(command[-1]) - 1
 			except ValueError:
 				print('Error! Invalid Tableau Value')
 			else:
-				if self.t.tableau_to_foundation(self.f, col):
-					self.score += 10
-					self.moves += 1
+				if col < 8:
+					if self.t.tableau_to_foundation(self.f, col):
+						self.score += 10
+						self.moves += 1
 
+					else:
+						print("Error! No card could be moved from the Tableau column to the Foundation.")
 				else:
-					print("Error! No card could be moved from the Tableau column to the Foundation.")
+					print("Error: Invalid Tablue Value")
 		elif "tt" in command and len(command) == 4:
 			try:
 				c1, c2 = int(command[-2]) - 1, int(command[-1]) - 1
 			except ValueError:
 				print('Error! Invalid Tableau Value')
 			else:
-				if self.t.tableau_to_tableau(c1, c2):
-					self.score += 5
-					self.moves += 1
+				if c1 < 8 and c2 < 8:
+					if self.t.tableau_to_tableau(c1, c2):
+						self.score += 5
+						self.moves += 1
+
+					else:
+						print("Error! No card could be moved from that Tableau column.")
 				else:
-					print("Error! No card could be moved from that Tableau column.")
+					print("Error! Invalid Tableau Value")
 
 
 
@@ -312,10 +319,10 @@ def gameManual():
 	if game.gameWon():
 		print("Congratulations! You've won!")
 
-	final_score,num_moves, game_duration = game.getFinalMetrics()
+	score,num_moves, game_duration = game.getFinalMetrics()
  
-	print(f"Final Score: {final_score} \nNum Moves: {num_moves} \nGame Duration: {game_duration} seconds ")
-	new_line = f"{final_score},{num_moves},{game_duration}"
+	print(f"Final Score: {score} \nNum Moves: {num_moves} \nGame Duration: {game_duration} seconds ")
+	new_line = f"{score},{num_moves},{game_duration}"
 	with open("runs.log","a") as a_file:
 		a_file.write("\n")
 		a_file.write(new_line)
@@ -330,19 +337,82 @@ def gameAuto():
 	game.printTable()
 
 	while not game.gameWon():
+		#flip waste if its empty
+		if game.sw.getWaste() == "empty":
+			game.TakeTurn("mv")
 		possible_moves = []
 
 
 	# Play the Ace or Two (#7)
 		# Check if there is an Ace or 2 in the Waste Pile and Play it
-		if game.sw.getWaste().value == 1 or game.sw.getWaste().value == 2:
-			game.takeTurn("wf")
+		if game.sw.getWaste().value == 1:
+			command = "wf"
+			print(command)
+			game.takeTurn(command)
 			game.printTable()
+			break 
+		
+		if game.sw.getWaste().value == 2:
+			suits = ["club", "heart", "spade", "diam"]
+			for i in suits:
+				if game.f.getTopCard(i)==game.sw.getWaste().suit == i:
+					command = "wf"
+					print(command)
+					game.TakeTurn(command)
+					game.printTable()
+					break
+			print('no valid foundation')
+
+
+		
 		# Check if there is an Ace or 2 in the Tableau Piles and Play it
-		game.printTable()
-		print(game.t.flipped)
-		print(game.t.unflipped)
-		raise('stp')
+		last_cards = {}
+		first_cards = {}
+		column_lengths = {}
+
+		for col_index in range(7):	
+			print(f"column {col_index}")
+			column_cards = game.t.flipped[col_index]
+			if len(column_cards) == 0:
+				pass
+			else:
+				last_card = column_cards[-1]
+				first_card = column_cards[0]
+				
+				# print(last_card)
+				# print(col_index)
+
+				last_cards[col_index]=last_card.value
+				first_cards[col_index]=first_card
+				column_lengths[col_index]=len(game.t.flipped[col_index])+len(game.t.unflipped[col_index])
+    
+				if last_card.value == 1:
+					command = f"tf{col_index+1}"
+					print(command)
+					game.takeTurn(command)
+					print("should have added to foundation")
+				elif last_card.value == 2:
+					suits = ["club", "heart", "spade", "diam"]
+					for card_suit in suits:
+						if game.f.getTopCard(card_suit)==last_card.suit == card_suit:
+							command = f"tf{col_index+1}"
+							print(command)
+							game.TakeTurn(command)
+							game.printTable()
+							break
+				else:
+					pass
+
+		print(last_cards)
+		print(first_cards)
+		print(column_lengths)
+
+		# #First check if any of the columns have a length of 0, if it does, see if we can move any kings to it
+		# if 1 in last_cards.values():
+		# for col_len in column_lengths.values:
+		# 	if col_len == 0:
+		# 		if game.sw.getWaste().value == 13:
+		# 			game.takeTurn("")
 
 
 		# Expose Large Stacks First (#1)
