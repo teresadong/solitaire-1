@@ -177,8 +177,8 @@ class Game:
 	def getFinalMetrics(self):
 		self.end_time = time.time()
 		self.game_duration = self.end_time - self.start_time
-
-		return self.score, self.moves, self.game_duration
+		win_indicator = 1 if self.gameWon() else 0
+		return self.score, self.moves, self.game_duration, win_indicator
 
 	def gameWon(self):
 		return self.f.gameWon()
@@ -232,10 +232,11 @@ class Game:
 				turn_success = True
 
 		elif command == "wf":
-			if self.f.addCard(self.sw.getWaste()):
-				self.sw.pop_waste_card()
-				self.score += 10
-				turn_success = True
+			if self.sw.getWaste() != "empty":
+				if self.f.addCard(self.sw.getWaste()):
+					self.sw.pop_waste_card()
+					self.score += 10
+					turn_success = True
 
 			else:
 				print("Error! No card could be moved from the Waste to the Foundation.")
@@ -361,10 +362,11 @@ class Game:
 
 
 				#Check if we can move any king from waste to tableau
-				if self.takeTurn(f"wt{col_index+1}"):
-					if verbose:
-						print(f"wt{col_index+1}")	
-					return True 
+				if self.sw.getWaste()!="empty":
+					if self.takeTurn(f"wt{col_index+1}"):
+						if verbose:
+							print(f"wt{col_index+1}")	
+						return True 
 
 
 		# Add Waste Cards to Tableau
@@ -372,10 +374,11 @@ class Game:
 			column_cards = self.t.flipped[col_index]			
 			if len(column_cards)>0:
 				# Check if I can add any Waste to Tableau
-				if self.takeTurn(f"wt{col_index+1}"):
-					if verbose:
-						print(f"wt{col_index+1}")
-					return True
+				if self.sw.getWaste()!="empty":    
+					if self.takeTurn(f"wt{col_index+1}"):
+						if verbose:
+							print(f"wt{col_index+1}")
+						return True
 
 		# Move Cards Across Tableaus	
 		for p1_index in range(7):
@@ -620,6 +623,8 @@ class Game:
 
 
 	def runAuto(self, verbose = False):
+		if self.gameWon():
+			return False
 
 		turnResult = self.simulateTurn(verbose=verbose)
 		self.printTable()
@@ -660,11 +665,11 @@ def gameManual():
 	if game.gameWon():
 		print("Congratulations! You've won!")
 
-	score,num_moves, game_duration = game.getFinalMetrics()
+	score,num_moves, game_duration, did_win = game.getFinalMetrics()
 
 	print(f"Final Score: {score} \nNum Moves: {num_moves} \nGame Duration: {game_duration} seconds ")
-	new_line = f"{score},{num_moves},{game_duration}"
-	with open("runs.log","a") as a_file:
+	new_line = f"{score},{num_moves},{game_duration},{did_win}"
+	with open("runs_auto.log","a") as a_file:
 		a_file.write("\n")
 		a_file.write(new_line)
 
@@ -679,17 +684,21 @@ def gameAuto():
 	game.printTable()
 
 	game.runAuto()
-	# while not game.gameWon():
-	# 	if !game.simulateTurn(verbose=True):
-	# 		game.takeTurn("mv")
-	# 		print("mv")	
-	
-	# 	game.printTable()
 
-	# print("\n".join(game.successful_moves))
+	if game.gameWon():
+		print("Congratulations! You've won!")
+
+	score,num_moves, game_duration, did_win = game.getFinalMetrics()
+
+	print(f"Final Score: {score} \nNum Moves: {num_moves} \nGame Duration: {game_duration} seconds ")
+	new_line = f"{score},{num_moves},{game_duration},{did_win}"
+	with open("runs_auto.log","a") as a_file:
+		a_file.write("\n")
+		a_file.write(new_line)
 
 
 if __name__ == "__main__":
 
 	# gameManual()
-	gameAuto()
+	for i in range(100):
+		gameAuto()
