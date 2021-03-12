@@ -32,32 +32,11 @@ class Card():
 	def __str__(self):
 		return self.title
 
-class Pile:
-	def __init__(self):
-		self.cards = []
-		
-	def addCard(self, Card):
-		self.cards.insert(0,Card)
-		
-	def flipFirstCard(self):
-		if len(self.cards)>0:
-			self.cards[0].flip()
-			
-	def getFlippedCards(self):
-		return [card for card in self.cards if card.flipped]
-	
-	def __str__(self):        
-		returnedCards = [str(card) for card in reversed(self.getFlippedCards())]
-		flippedDownCount = len(self.cards) - len(self.getFlippedCards())
-		if flippedDownCount>0:
-			returnedCards.insert(0,"{0} cards flipped down".format(flippedDownCount))
-		return ", ".join(returnedCards)
-
 
 class Deck():
 	unshuffled_deck = [Card(card, suit) for card in range(1, 14) for suit in ["club", "diam", "heart", "spade"]]
 
-	def __init__(self, num_decks=1):
+	def __init__(self, num_decks=1,verbose=False):
 		self.deck = self.unshuffled_deck * num_decks
 		random.shuffle(self.deck)
 
