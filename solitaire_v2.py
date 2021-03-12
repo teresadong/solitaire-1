@@ -313,8 +313,12 @@ def gameManual():
 		print("Congratulations! You've won!")
 
 	final_score,num_moves, game_duration = game.getFinalMetrics()
+ 
 	print(f"Final Score: {final_score} \nNum Moves: {num_moves} \nGame Duration: {game_duration} seconds ")
-
+	new_line = f"{final_score},{num_moves},{game_duration}"
+	with open("runs.log","a") as a_file:
+		a_file.write("\n")
+		a_file.write(new_line)
 
 
 def gameAuto():
