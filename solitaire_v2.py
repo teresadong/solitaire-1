@@ -167,15 +167,12 @@ class Game:
 		self.f = Foundation()
 		self.sw = StockWaste(self.d.deal_cards(24))
 
+		self.num_turns = 0
 		self.moves = 0
 		self.score = 0
 		self.start_time = time.time()
 		self.end_time = None
-
-		# print("\n" + BREAK_STRING)
-		# print("Welcome to Danny's Solitaire!\n")
-		# self.printValidCommands()
-		# self.printTable()
+		self.successful_moves = []
 
 	def getFinalMetrics(self):
 		self.end_time = time.time()
@@ -203,8 +200,6 @@ class Game:
 	def printTable(self, tableau=None, foundation=None, stock_waste=None):
 		""" Prints the current status of the table """
 
-
-
 		print(BREAK_STRING)
 		print("Waste \t Stock \t\t\t\t Foundation")
 		print("{}\t{}\t\t{}\t{}\t{}\t{}".format(self.sw.getWaste(), self.sw.getStock(),
@@ -229,74 +224,286 @@ class Game:
 
 
 	def takeTurn(self, command):
+		turn_success = False
+
 
 		if command == "mv":
 			if self.sw.stock_to_waste():
-				self.moves += 1
+				turn_success = True
 
 		elif command == "wf":
 			if self.f.addCard(self.sw.getWaste()):
 				self.sw.pop_waste_card()
 				self.score += 10
-				self.moves += 1
+				turn_success = True
 
 			else:
 				print("Error! No card could be moved from the Waste to the Foundation.")
+
 
 		elif "wt" in command and len(command) == 3:
 			try:
 				col = int(command[-1]) - 1
 			except ValueError:
 				print('Error! Invalid Tableau Value')
+
 			else:
 				if col < 8:
 					if self.t.waste_to_tableau(self.sw, col):
 						self.score += 5
-						self.moves += 1
+						turn_success = True
 
 					else:
 						print("Error! No card could be moved from the Waste to the Tableau column.")
+
 				else:
 					print('Error! Invaid Tableau Value')
+
+
 		elif "tf" in command and len(command) == 3:
 			try:
 				col = int(command[-1]) - 1
 			except ValueError:
 				print('Error! Invalid Tableau Value')
+
 			else:
 				if col < 8:
 					if self.t.tableau_to_foundation(self.f, col):
 						self.score += 10
-						self.moves += 1
+						turn_success = True
 
 					else:
 						print("Error! No card could be moved from the Tableau column to the Foundation.")
+						print(command)
+
 				else:
 					print("Error: Invalid Tablue Value")
+
+
 		elif "tt" in command and len(command) == 4:
 			try:
 				c1, c2 = int(command[-2]) - 1, int(command[-1]) - 1
 			except ValueError:
 				print('Error! Invalid Tableau Value')
+
+
 			else:
 				if c1 < 8 and c2 < 8:
 					if self.t.tableau_to_tableau(c1, c2):
 						self.score += 5
-						self.moves += 1
+						turn_success = True
 
 					else:
 						print("Error! No card could be moved from that Tableau column.")
+
 				else:
 					print("Error! Invalid Tableau Value")
+
 
 
 
 		else:
 			print('Error! Not a Valid Command')
 
+
+		if turn_success == True:
+			self.moves += 1
+			print(f"Success! {command}")
+			self.successful_moves.append(command)
+
+		return turn_success
+
+	def simulateTurn(self,verbose=False):
+		self.num_turns +=1
+
+		#Turn Up the First Deck Card First (#4)
+		if self.sw.getWaste() == "empty":
+			if self.takeTurn("mv"):
+				if verbose:
+					print("mv")
+				return True
+
+		#Check if can move any Tableau Cards to Foundation
+		for col_index in range(7):
+			column_cards = self.t.flipped[col_index]			
+			if len(column_cards)>0:
+				command = f"tf{col_index+1}"
+				if self.takeTurn(command):
+					if verbose:
+						print(command)
+					return True
+
+		# Check if I can move any Waste to Foundation
+		if self.takeTurn("wf"):
+			if verbose:
+				print("wf")
+			return True
+
+			# if its an open tableau, move king to it:
+		for col_index in range(7):
+			if len(column_cards)==0:
+				#Check if we can move from any Tableau to Foundation
+				for col_index2 in range(7): 
+					if col_index != col_index2:
+						column_cards2 = self.t.flipped[col_index2]
+						if len(column_cards2) > 0 and column_cards2[0].value == "K":
+							command = f"tt{col_index2+1}{col_index+1}"
+							if self.takeTurn(command):
+								if verbose:
+									print(command)
+								return True
+
+				#Check if we can move any king from waste to tableau
+				if self.takeTurn(f"wt{col_index+1}"):
+					if verbose:
+						print(f"wt{col_index+1}")	
+					return True 
+
+
+		# Add Waste Cards to Tableau
+		for col_index in range(7):
+			column_cards = self.t.flipped[col_index]			
+			if len(column_cards)>0:
+				# Check if I can add any Waste to Tableau
+				if self.takeTurn(f"wt{col_index+1}"):
+					if verbose:
+						print(f"wt{col_index+1}")
+					return True
+
+		# Move Cards Across Tableaus	
+		for col_index in range(7):
+			if len(column_cards)>0:
+				#Check if we can move from any Tableau to Foundation
+				for col_index2 in range(7):
+					if col_index != col_index2:
+						column_cards2 = self.t.flipped[col_index2]
+						if len(column_cards2) > 0:
+							command = f"tt{col_index2+1}{col_index+1}"
+							if self.takeTurn(command):
+								if verbose:
+									print(command)
+								return True
+
+
+		# # Play the Ace or Two (#7)
+		# ## Check if there is an Ace in the Waste Pile and Play it
+		# if self.sw.getWaste().value == 1:
+		# 	if self.takeTurn("wf"):
+		# 		if verbose:
+		# 			print("wf")
+		# 		return True
+
+		# ## Check if there is a Two in the Waste Pile and Play it		
+		# if self.sw.getWaste().value == 2:
+		# 	suits = ["club", "heart", "spade", "diam"]
+		# 	for i in suits:
+		# 		if self.f.getTopCard(i)==self.sw.getWaste().suit == i:
+		# 			if self.takeTurn("wf"):
+		# 				if verbose:
+		# 					print("wf")
+		# 				return True
+
+		# # Add Tableau to Foundation
+		# for col_index in range(7):	
+
+		# 	column_cards = self.t.flipped[col_index]
+
+		# 	# if its an open tableau, move king to it:
+		# 	if len(column_cards)==0:
+		# 		#Check if we can move from any Tableau to Foundation
+		# 		for col_index2 in range(7): 
+		# 			if col_index != col_index2:
+		# 				column_cards2 = self.t.flipped[col_index2]
+		# 				if len(column_cards2) > 0 and column_cards2[0].value == "K":
+		# 					command = f"tt{col_index2+1}{col_index+1}"
+		# 					if self.takeTurn(command):
+		# 						if verbose:
+		# 							print(command)
+		# 						return True
+
+		# 		#Check if we can move any king from waste to tableau
+		# 		if self.takeTurn(f"wt{col_index+1}"):
+		# 			if verbose:
+		# 				print(f"wt{col_index+1}")	
+		# 			return True
+
+		# # if its not an empty pile
+		# for col_index in range(7):
+		# 	column_cards = self.t.flipped[col_index]			
+		# 	if len(column_cards)>0:
+		# 		last_card = column_cards[-1]
+		# 		first_card = column_cards[0]
+
+		# 		# Check if there is an Ace in the Tableau Piles and Play it    
+		# 		if last_card.value == 1:
+		# 			command = f"tf{col_index+1}"
+		# 			if self.takeTurn(command):
+		# 				if verbose:
+		# 					print(command)
+		# 				return True
+
+		# # if its not an empty pile
+		# for col_index in range(7):
+		# 	column_cards = self.t.flipped[col_index]			
+		# 	if len(column_cards)>0:
+		# 		# Check if there is a Two in the Tableau Piles and Play it    				
+		# 		if last_card.value == 2:
+		# 			suits = ["club", "heart", "spade", "diam"]
+		# 			for card_suit in suits:
+		# 				if self.f.getTopCard(card_suit)==last_card.suit == card_suit: 
+		
+		# 					command = f"tf{col_index+1}"
+		# 					if self.TakeTurn(command):
+		# 						print(command)
+		# 					return True
+
+		# for col_index in range(7):
+		# 	column_cards = self.t.flipped[col_index]			
+		# 	if len(column_cards)>0:
+		# 		# Check if I can move any Tableau to Foundation
+		# 		command = f"tf{col_index+1}"
+		# 		if self.takeTurn(command):
+		# 			if verbose:
+		# 				print(command)
+		# 			return True
+
+
+
+
+
+		# for col_index in range(7):
+		# 	column_cards = self.t.flipped[col_index]			
+		# 	if len(column_cards)>0:
+		# 		# Move around Cards in Play Piles
+		# 		for col_index2 in range(7): 
+		# 			if col_index != col_index2:
+		# 				column_cards2 = self.t.flipped[col_index2]
+		# 				if len(column_cards2) > 0:
+		# 					command = f"tt{col_index2+1}{col_index+1}"
+		# 					if self.takeTurn(command):
+		# 						if verbose:
+		# 							print(command)
+		# 						return True
+
+		return False
+
+
+	def runAuto(self, verbose = False):
+
+		turnResult = self.simulateTurn(verbose=verbose)
 		self.printTable()
 
+		if turnResult:
+			self.runAuto(verbose=verbose)
 
+
+		else: 
+			#End draw from deck 
+			if self.sw.getStock()!="empty":
+				self.takeTurn("mv")
+				return self.runAuto(verbose=verbose)
+			else: 
+				return False
 
 def gameManual():
 	game = Game()
@@ -320,7 +527,7 @@ def gameManual():
 		print("Congratulations! You've won!")
 
 	score,num_moves, game_duration = game.getFinalMetrics()
- 
+
 	print(f"Final Score: {score} \nNum Moves: {num_moves} \nGame Duration: {game_duration} seconds ")
 	new_line = f"{score},{num_moves},{game_duration}"
 	with open("runs.log","a") as a_file:
@@ -328,126 +535,27 @@ def gameManual():
 		a_file.write(new_line)
 
 
+
+
+
+
 def gameAuto():
 	game = Game()
 	game.printValidCommands()
 	game.printTable()
-	#Turn Up the First Deck Card First (#4)
-	game.takeTurn("mv")
-	game.printTable()
 
-	while not game.gameWon():
-		#flip waste if its empty
-		if game.sw.getWaste() == "empty":
-			game.TakeTurn("mv")
-		possible_moves = []
+	game.runAuto()
+	# while not game.gameWon():
+	# 	if !game.simulateTurn(verbose=True):
+	# 		game.takeTurn("mv")
+	# 		print("mv")	
+	
+	# 	game.printTable()
 
-
-	# Play the Ace or Two (#7)
-		# Check if there is an Ace or 2 in the Waste Pile and Play it
-		if game.sw.getWaste().value == 1:
-			command = "wf"
-			print(command)
-			game.takeTurn(command)
-			game.printTable()
-			break 
-		
-		if game.sw.getWaste().value == 2:
-			suits = ["club", "heart", "spade", "diam"]
-			for i in suits:
-				if game.f.getTopCard(i)==game.sw.getWaste().suit == i:
-					command = "wf"
-					print(command)
-					game.TakeTurn(command)
-					game.printTable()
-					break
-			print('no valid foundation')
-
-
-		
-		# Check if there is an Ace or 2 in the Tableau Piles and Play it
-		last_cards = {}
-		first_cards = {}
-		column_lengths = {}
-
-		for col_index in range(7):	
-			print(f"column {col_index}")
-			column_cards = game.t.flipped[col_index]
-			if len(column_cards) == 0:
-				pass
-			else:
-				last_card = column_cards[-1]
-				first_card = column_cards[0]
-				
-				# print(last_card)
-				# print(col_index)
-
-				last_cards[col_index]=last_card.value
-				first_cards[col_index]=first_card
-				column_lengths[col_index]=len(game.t.flipped[col_index])+len(game.t.unflipped[col_index])
-    
-				if last_card.value == 1:
-					command = f"tf{col_index+1}"
-					print(command)
-					game.takeTurn(command)
-					print("should have added to foundation")
-				elif last_card.value == 2:
-					suits = ["club", "heart", "spade", "diam"]
-					for card_suit in suits:
-						if game.f.getTopCard(card_suit)==last_card.suit == card_suit:
-							command = f"tf{col_index+1}"
-							print(command)
-							game.TakeTurn(command)
-							game.printTable()
-							break
-				else:
-					pass
-
-		print(last_cards)
-		print(first_cards)
-		print(column_lengths)
-
-		# #First check if any of the columns have a length of 0, if it does, see if we can move any kings to it
-		# if 1 in last_cards.values():
-		# for col_len in column_lengths.values:
-		# 	if col_len == 0:
-		# 		if game.sw.getWaste().value == 13:
-		# 			game.takeTurn("")
-
-
-		# Expose Large Stacks First (#1)
-			# Get length of each Tableau, Loop in that order
-			# For Each Loop Run
-				# Find all moves that can be moved
-					# If you can expose a new card add 2 points
-					# If can open a spot, check if any kings are available
-						# if yes add 3 points
-						# else add 0 points
-
-		# Check if we can move any card from waste pile to tableau
-
-		# Move any King to Open Spot (#2)
-			# If only 1 king can be moved to it and end turn
-			# Else Consider what Jack and Queens are exposed
-				#Check exposed tableaus, if any of them start with a queen, prioritize that king
-
-
-
-
-
-
-
-
-
-
-
-
-		#Generate All Possible Moves
-
-
+	# print("\n".join(game.successful_moves))
 
 
 if __name__ == "__main__":
 
-	gameManual()
-	# gameAuto()
+	# gameManual()
+	gameAuto()
