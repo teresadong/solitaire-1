@@ -313,6 +313,11 @@ class Game:
 
 		return turn_success
 
+	def checkCardOrder(self,higherCard,lowerCard):
+		suitsDifferent = higherCard.isOppositeSuit(lowerCard)
+		valueConsecutive = lowerCard.isBelow(higherCard)
+		return suitsDifferent and valueConsecutive
+
 	def simulateTurn(self,verbose=False):
 		self.num_turns +=1
 
@@ -341,17 +346,19 @@ class Game:
 
 			# if its an open tableau, move king to it:
 		for col_index in range(7):
+			column_cards = self.t.flipped[col_index]
 			if len(column_cards)==0:
 				#Check if we can move from any Tableau to Foundation
 				for col_index2 in range(7): 
 					if col_index != col_index2:
 						column_cards2 = self.t.flipped[col_index2]
-						if len(column_cards2) > 0 and column_cards2[0].value == "K":
+						if len(column_cards2) > 0 and len(self.t.unflipped[col_index2])>0 and column_cards2[0].value == 13:
 							command = f"tt{col_index2+1}{col_index+1}"
 							if self.takeTurn(command):
 								if verbose:
 									print(command)
 								return True
+
 
 				#Check if we can move any king from waste to tableau
 				if self.takeTurn(f"wt{col_index+1}"):
@@ -371,19 +378,143 @@ class Game:
 					return True
 
 		# Move Cards Across Tableaus	
-		for col_index in range(7):
-			if len(column_cards)>0:
-				#Check if we can move from any Tableau to Foundation
-				for col_index2 in range(7):
-					if col_index != col_index2:
-						column_cards2 = self.t.flipped[col_index2]
-						if len(column_cards2) > 0:
-							command = f"tt{col_index2+1}{col_index+1}"
-							if self.takeTurn(command):
-								if verbose:
-									print(command)
-								return True
+		for p1_index in range(7):
+			pile1_flipped_cards = self.t.flipped[p1_index]
+			pile1_unflipped_cards = self.t.unflipped[p1_index]
+			
+			
+			if len(self.t.flipped[p1_index])>0:
+				for p2_index in range(7):
 
+					if p1_index != p2_index and len(self.t.flipped[p2_index])>0:
+
+						if self.t.flipped[p2_index][-1].canAttach(self.t.flipped[p1_index][0]):
+							command = f"tt{p1_index+1}{p2_index+1}"
+							if self.takeTurn(command):
+									if verbose:
+										print(command)	
+									return True
+							# else:
+							# 	print("Pile 1")
+							# 	for card in self.t.flipped[p1_index]:
+							# 		print(f"{card.suit}{card.value}")
+							# 	print("Pile 2")
+							# 	for card in self.t.flipped[p2_index]:
+							# 		print(f"{card.suit}{card.value}")	
+										# p1_length_flipped = len(self.t.flipped[p1_index])
+							# p1_length_unflipped = len(self.t.unflipped[p1_index])
+							# p1_length_total = p1_length_flipped+p1_length_unflipped
+
+							
+							# if p1_length_flipped ==  p1_length_total:
+							# 	command = f"tt{p2_index+1}{p1_index+1}"
+							# 	if self.takeTurn(command):
+							# 		if verbose:
+							# 			print(command)
+							# 		return True
+
+							# elif p1_length_total-p1_length_flipped == p1_length_unflipped:
+							# 	command = f"tt{p2_index+1}{p1_index+1}"
+							# 	if self.takeTurn(command):
+							# 		if verbose:
+							# 			print(command)	
+							# 		return True
+    
+							# else: 
+							# 	print(p1_length_total)
+							# 	print(p1_length_flipped)
+							# 	print(p1_length_unflipped)       
+							# 	print("Pile 1")
+							# 	for card in self.t.flipped[p1_index]:
+							# 		print(f"{card.suit}{card.value}")
+							# 	print("Pile 2")
+							# 	for card in self.t.flipped[p2_index]:
+							# 		print(f"{card.suit}{card.value}")	
+							# 	raise('stp')
+
+						# command = f"tt{p2_index+1}{p1_index+1}"
+						# if self.takeTurn(command):
+						# 	if verbose:
+						# 		print(command)
+						# 	raise('stp')
+
+						# 	return True	
+						# for transfer_cards_size in range(1,len(self.t.flipped[p1_index])+1):
+						# 	cards_to_transfer = self.t.flipped[p1_index][:transfer_cards_size]
+
+						# 	if self.checkCardOrder(pile2_flipped_cards[-1],cards_to_transfer[0]):
+								# print(pile1_downcard_count)
+								# print(pile2_downcard_count)
+								# if len(pile2_flipped_cards)>1:
+								# 	print("Pile 1")
+								# 	for card in pile1_flipped_cards:
+								# 		print(f"{card.suit}{card.value}")
+								# 	print("Pile 2")
+								# 	for card in pile2_flipped_cards:
+								# 		print(f"{card.suit}{card.value}")
+								# 	print("Card To Transfer")
+								# 	for card in cards_to_transfer:
+								# 		print(f"{card.suit}{card.value}")
+								# 	self.printTable()
+								# 	raise('stp')  
+
+								# if len(cards_to_transfer)==len(pile1_flipped_cards):
+
+									
+								# # pile1_downcard_count = len(self.t.unflipped[p1_index])
+								# # pile2_downcard_count = len(self.t.unflipped[p2_index])
+								# # if pile2_downcard_count < pile1_downcard_count:
+								# # 	if len(cards_to_transfer)> 2:
+								# # 		print(pile1_downcard_count)
+								# # 		print(pile2_downcard_count)
+								# # 		print("Pile 1")
+								# # 		for card in pile1_flipped_cards:
+								# # 			print(f"{card.suit}{card.value}")
+								# # 		print("Pile 2")
+								# # 		for card in pile2_flipped_cards:
+								# # 			print(f"{card.suit}{card.value}")
+								# # 		print("Card To Transfer")
+								# # 		for card in cards_to_transfer:
+								# # 			print(f"{card.suit}{card.value}")
+								# # 		self.printTable()
+								# # 		raise('stp')  
+            
+								# 	#Transfer Pile 1 to Pile 2
+								# 	self.t.flipped[p2_index]
+								# 	# [pile2.cards.insert(0,card) for card in reversed(cards_to_transfer)]
+								# 	# pile1.cards = pile1.cards[transfer_cards_size:]
+								# 	command = f"tt{p2_index+1}{p1_index+1}"
+								# 	if self.takeTurn(command):
+								# 		if verbose:
+								# 			print(command)
+								# 		return True									
+            
+								# 	# for card in pile1_flipped_cards:
+								# 	# 	print(f"{card.suit}{card.value}")
+								# 	# for card in pile2_flipped_cards:
+								# 	# 	print(f"{card.suit}{card.value}")
+								# 	# for card in cards_to_transfer:
+								# 	# 	print(f"{card.suit}{card.value}")
+								# 	# self.printTable()
+								# 	# raise('stp')  
+            
+								# elif pile1_downcard_count==0 and len(cards_to_transfer) == (len(self.t.unflipped[p1_index])+len(self.t.flipped[p1_index])):
+								# 	# [pile2.cards.insert(0,card) for card in reversed(cards_to_transfer)]
+								# 	# pile1.cards = []
+								# 	# if verbose:
+								# 	# 	print("Moved {0} cards between piles: {1}".format(
+								# 	# 		transfer_cards_size,
+								# 	# 		", ".join([str(card) for card in cards_to_transfer])
+								# 	# 													 ))
+
+								# 	command = f"tt{p2_index+1}{p1_index+1}"
+								# 	if self.takeTurn(command):
+								# 		if verbose:
+								# 			print(command)
+								# 		return True	
+
+
+		
 
 		# # Play the Ace or Two (#7)
 		# ## Check if there is an Ace in the Waste Pile and Play it
@@ -498,11 +629,14 @@ class Game:
 
 
 		else: 
+			# raise('stp')
 			#End draw from deck 
 			if self.sw.getStock()!="empty":
+
 				self.takeTurn("mv")
 				return self.runAuto(verbose=verbose)
 			else: 
+				
 				return False
 
 def gameManual():
