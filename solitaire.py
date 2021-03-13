@@ -1,8 +1,11 @@
 import re
 from game_elements import Game
 import operator
-import itertools
+from itertools import permutations  
 from collections import OrderedDict
+
+import pandas as pd 
+import math
 
 class Strategy:
 	def __init__(self,rule_order,col_order,verbose=False):
@@ -227,23 +230,108 @@ if __name__ == "__main__":
 
 	# simulation.runAuto(strategy)
 
-	# Basic
-	rule_order=list(range(1,6))
+	# # Basic
+	# rule_order=list(range(1,6))
+	# col_order=list(range(6,-1,-1))
+
+	# simulation = Simulation('logs/runs_auto_basic_1000_300_1235_6543210.log',num_runs=1000,max_turns=300)
+
+	# # Create a Strategy Object that specifies Rule Order and Column Order
+	# strategy = Strategy(rule_order=rule_order,col_order=col_order,verbose=simulation.verbose)
+
+	# simulation.runAuto(strategy)
+
+	# # Basic Reverse
+	# rule_order=range(5,0,-1)
+	# col_order=list(range(6,-1,-1))
+	# simulation = Simulation('logs/runs_auto_basic_1000_300_54321_6543210.log',num_runs=1000,max_turns=300)
+
+	# # Create a Strategy Object that specifies Rule Order and Column Order
+	# strategy = Strategy(rule_order=rule_order,col_order=col_order,verbose=simulation.verbose)
+
+	# simulation.runAuto(strategy)
+
+
+	
+	with open("logs/summary.csv","w") as a_file:
+		a_file.write("log_file,num_runs,num_turns,rule_order,col_order,avg_win_rate,avg_moves_win,ci95_win_rate")
+
+
+
+
+
+
+
+
+	num_runs=500
+	num_turns=300
+
+	rule_perm = list(permutations(list(range(1,6))))
+	col_perm = list(permutations(list(range(7))))	
+
+
+
 	col_order=list(range(6,-1,-1))
+	for rule_order in rule_perm:
+		rule_order_str = ''.join("{0}".format(n) for n in rule_order)
+		col_order_str = ''.join("{0}".format(n) for n in col_order)
+		output_log_name = f'logs/runs_auto_basic_{num_runs}_{num_turns}_{rule_order_str}_{col_order_str}.log'
+		
+		simulation = Simulation(output_log_name,num_runs=num_runs,max_turns=num_turns)
 
-	simulation = Simulation('logs/runs_auto_basic_1000_300_1235_6543210.log',num_runs=1000,max_turns=300)
+		# Create a Strategy Object that specifies Rule Order and Column Order
+		strategy = Strategy(rule_order=rule_order,col_order=col_order,verbose=simulation.verbose)
 
-	# Create a Strategy Object that specifies Rule Order and Column Order
-	strategy = Strategy(rule_order=rule_order,col_order=col_order,verbose=simulation.verbose)
+		simulation.runAuto(strategy)			
 
-	simulation.runAuto(strategy)
+		
 
-	# Basic Reverse
-	rule_order=range(5,0,-1)
-	col_order=list(range(6,-1,-1))
-	simulation = Simulation('logs/runs_auto_basic_1000_300_54321_6543210.log',num_runs=1000,max_turns=300)
+		log_pd = pd.read_csv(output_log_name)
 
-	# Create a Strategy Object that specifies Rule Order and Column Order
-	strategy = Strategy(rule_order=rule_order,col_order=col_order,verbose=simulation.verbose)
+		avg_win_rate = log_pd.did_win.mean()
 
-	simulation.runAuto(strategy)
+		avg_moves_win = log_pd[log_pd.did_win==1].num_moves.mean()
+
+		ci95_win_rate = 1.96*math.sqrt(avg_win_rate*(1-avg_win_rate)/1000)
+
+		new_line=f"{output_log_name},{num_runs},{num_turns},{rule_order_str},{col_order_str},{avg_win_rate},{avg_moves_win},{ci95_win_rate}"
+
+
+		with open("logs/summary.csv","a") as a_file:
+			a_file.write("\n")
+
+			a_file.write(new_line)
+
+	for rule_order in rule_perm:
+		for col_order in col_perm:
+
+			rule_order_str = ''.join("{0}".format(n) for n in rule_order)
+			col_order_str = ''.join("{0}".format(n) for n in col_order)
+			output_log_name = f'logs/runs_auto_basic_{num_runs}_{num_turns}_{rule_order_str}_{col_order_str}.log'
+			
+			simulation = Simulation(output_log_name,num_runs=1000,max_turns=300)
+
+			# Create a Strategy Object that specifies Rule Order and Column Order
+			strategy = Strategy(rule_order=rule_order,col_order=col_order,verbose=simulation.verbose)
+
+			simulation.runAuto(strategy)			
+
+			
+
+			log_pd = pd.read_csv(output_log_name)
+
+			avg_win_rate = log_pd.did_win.mean()
+
+			avg_moves_win = log_pd[log_pd.did_win==1].num_moves.mean()
+
+			ci95_win_rate = 1.96*math.sqrt(avg_win_rate*(1-avg_win_rate)/1000)
+
+			new_line=f"{output_log_name},{num_runs},{num_turns},{rule_order_str},{col_order_str},{avg_win_rate},{avg_moves_win},{ci95_win_rate}"
+
+
+			with open("logs/summary.csv","a") as a_file:
+				a_file.write("\n")
+
+				a_file.write(new_line)
+
+
