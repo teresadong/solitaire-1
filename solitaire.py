@@ -206,11 +206,32 @@ if __name__ == "__main__":
 	# Default is Manual
 	# simulation = Simulation('runs_manual.log','manual',verbose=True)
 
+	# # Basic
+	# rule_order=list(range(1,6))
+	# col_order=list(range(7))
+
+	# simulation = Simulation('logs/runs_auto_basic_1000_300_1235.log',num_runs=1000,max_turns=300)
+
+	# # Create a Strategy Object that specifies Rule Order and Column Order
+	# strategy = Strategy(rule_order=rule_order,col_order=col_order,verbose=simulation.verbose)
+
+	# simulation.runAuto(strategy)
+
+	# # Basic Reverse
+	# rule_order=range(5,0,-1)
+	# col_order=range(7)
+	# simulation = Simulation('logs/runs_auto_basic_1000_300_54321.log',num_runs=1000,max_turns=300)
+
+	# # Create a Strategy Object that specifies Rule Order and Column Order
+	# strategy = Strategy(rule_order=rule_order,col_order=col_order,verbose=simulation.verbose)
+
+	# simulation.runAuto(strategy)
+
 	# Basic
 	rule_order=list(range(1,6))
-	col_order=list(range(7))
+	col_order=list(range(6,-1,-1))
 
-	simulation = Simulation('logs/runs_auto_basic_1000_300_1235.log',num_runs=1000,max_turns=300)
+	simulation = Simulation('logs/runs_auto_basic_1000_300_1235_6543210.log',num_runs=1000,max_turns=300)
 
 	# Create a Strategy Object that specifies Rule Order and Column Order
 	strategy = Strategy(rule_order=rule_order,col_order=col_order,verbose=simulation.verbose)
@@ -219,14 +240,10 @@ if __name__ == "__main__":
 
 	# Basic Reverse
 	rule_order=range(5,0,-1)
-	col_order=range(7)
-	simulation = Simulation('logs/runs_auto_basic_1000_300_54321.log',num_runs=1000,max_turns=300)
+	col_order=list(range(6,-1,-1))
+	simulation = Simulation('logs/runs_auto_basic_1000_300_54321_6543210.log',num_runs=1000,max_turns=300)
 
 	# Create a Strategy Object that specifies Rule Order and Column Order
 	strategy = Strategy(rule_order=rule_order,col_order=col_order,verbose=simulation.verbose)
 
 	simulation.runAuto(strategy)
-
-
-	# simulation = Simulation('logs/runs_auto_basic_300_300.log','basic',num_runs=300,max_turns=300,verbose=False)
-	# simulation = Simulation('logs/runs_auto_basic_500_500.log','basic',num_runs=500,max_turns=500,verbose=False)
