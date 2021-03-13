@@ -1,12 +1,29 @@
 import re
 from game_elements import Game
 import operator
+import itertools
+from collections import OrderedDict
 
 class Strategy:
-	def __init__(self,game,col_order,verbose=False):
-		self.game=game
+	def __init__(self,rule_order,col_order,verbose=False):
 		self.col_order = col_order
+		self.rule_order = rule_order
 		self.verbose=verbose
+		self.rule_dict = {1: self.moveTableauToFoundation, 
+					2: self.moveWasteToFoundation, 
+					3: self.fillOpenWithKings,
+					4: self.addWasteToTableau,
+					5: self.moveCardsToExpose}
+
+	def setGame(self,game):
+		self.game=game
+
+	def orderedRuleDict(self,rule_order):
+		ordered_rules = OrderedDict.fromkeys(rule_order)
+		for key in ordered_rules:
+			ordered_rules[key]=self.rule_dict[key]
+
+		return ordered_rules					
 
 	def moveTableauToFoundation(self):
 		#Check if can move any Tableau Cards to Foundation
@@ -83,29 +100,26 @@ class Strategy:
 									return True
 		return False
 
-class Simulation:
-	def __init__(self,output_log,alg='manual',num_runs=100,max_turns=100,verbose=False):
-		self.output_log=output_log
-		self.runs = num_runs 
-		self.max_turns=max_turns
-		self.verbose = verbose
 
-		with open(self.output_log,"a") as a_file:
+
+
+
+
+class Simulation:
+	def __init__(self,output_log,num_runs=100,max_turns=100,verbose=False):
+		self.output_log=output_log
+		self.verbose = verbose
+		self.num_runs=num_runs
+		self.max_turns=max_turns
+		
+
+		with open(self.output_log,"w") as a_file:
 			new_line = "score,num_moves,game_duration,did_win"
 			a_file.write(new_line)
 
 
-
-		if alg=="basic": 
-			for i in range(num_runs):
-				self.runAutoBasic()
-		else:
-			self.runManual()
-
-	def simulateBasic(self):
+	def simulateRulePerm(self,strategy):
 		self.num_turns +=1
-
-		strategy = Strategy(self.game,col_order=range(7),verbose=self.verbose)
 
 		#Always make sure 1 card from the deck is visible
 		if self.game.sw.getWaste() == "empty":
@@ -114,39 +128,30 @@ class Simulation:
 					print("mv")
 				return True
 
-		if strategy.moveTableauToFoundation():
-			return True
-
-		if strategy.moveWasteToFoundation():
-			return True
-
-		if strategy.fillOpenWithKings():
-			return True
-
-		if strategy.addWasteToTableau():
-			return True
-
-		if strategy.moveCardsToExpose():
-			return True
+		rule_dict = strategy.orderedRuleDict(rule_order)
+	
+		for rule in rule_dict:
+			if rule_dict[rule]():
+				return True
 
 		return False
 
-	def basicAuto(self):
+	def basicAuto(self, strategy):
 		if self.game.gameWon():
 			return False
 
-		turnResult =self.simulateBasic()
+		turnResult = self.simulateRulePerm(strategy)
 		if self.verbose:
 			self.game.printTable()
 
 		if turnResult:
-			self.basicAuto()
+			self.basicAuto(strategy)
 
 		else: 
 			if self.num_turns < self.max_turns:
 				#End draw from deck 
 				self.game.takeTurn("mv")
-				return self.basicAuto()
+				return self.basicAuto(strategy)
 
 
 
@@ -186,18 +191,42 @@ class Simulation:
 			a_file.write("\n")
 			a_file.write(new_line)
 
-	def runAutoBasic(self):
-		# Num Turns Needs to Be Reset Each Run
-		self.num_turns=0
-		self.game = Game(verbose=self.verbose)
-		self.basicAuto()
-		self.outputToLog()
+	def runAuto(self,strategy):
+		for i in range(self.num_runs):
+			# For Each Run, Create a New Game and Reset Numb Terms
+			self.num_turns=0
+			self.game = Game(verbose=self.verbose)
+			strategy.setGame(self.game)
+
+			self.basicAuto(strategy)
+			self.outputToLog()
 
 
 if __name__ == "__main__":
-	#Default is Manual
+	# Default is Manual
 	# simulation = Simulation('runs_manual.log','manual',verbose=True)
 
-	# simulation = Simulation('logs/runs_auto_basic_100_100.log','basic',num_runs=100,max_turns=100,verbose=False)
+	# Basic
+	rule_order=list(range(1,6))
+	col_order=list(range(7))
+
+	simulation = Simulation('logs/runs_auto_basic_1000_300_1235.log',num_runs=1000,max_turns=300)
+
+	# Create a Strategy Object that specifies Rule Order and Column Order
+	strategy = Strategy(rule_order=rule_order,col_order=col_order,verbose=simulation.verbose)
+
+	simulation.runAuto(strategy)
+
+	# Basic Reverse
+	rule_order=range(5,0,-1)
+	col_order=range(7)
+	simulation = Simulation('logs/runs_auto_basic_1000_300_54321.log',num_runs=1000,max_turns=300)
+
+	# Create a Strategy Object that specifies Rule Order and Column Order
+	strategy = Strategy(rule_order=rule_order,col_order=col_order,verbose=simulation.verbose)
+
+	simulation.runAuto(strategy)
+
+
 	# simulation = Simulation('logs/runs_auto_basic_300_300.log','basic',num_runs=300,max_turns=300,verbose=False)
 	# simulation = Simulation('logs/runs_auto_basic_500_500.log','basic',num_runs=500,max_turns=500,verbose=False)
