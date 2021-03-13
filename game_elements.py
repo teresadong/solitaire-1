@@ -170,7 +170,6 @@ class Game():
 		self.sw = StockWaste(self.d.deal_cards(24),verbose=verbose)
 		self.verbose=verbose
 
-		self.num_turns = 0
 		self.moves = 0
 		self.score = 0
 		self.start_time = time.time()
