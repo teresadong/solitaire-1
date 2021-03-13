@@ -198,6 +198,6 @@ if __name__ == "__main__":
 	#Default is Manual
 	# simulation = Simulation('runs_manual.log','manual',verbose=True)
 
-	simulation = Simulation('runs_auto_basic_100_100.log','basic',num_runs=100,max_turns=100,verbose=False)
-	simulation = Simulation('runs_auto_basic_300_300.log','basic',num_runs=300,max_turns=300,verbose=False)
-	simulation = Simulation('runs_auto_basic_500_500.log','basic',num_runs=500,max_turns=500,verbose=False)
+	# simulation = Simulation('logs/runs_auto_basic_100_100.log','basic',num_runs=100,max_turns=100,verbose=False)
+	# simulation = Simulation('logs/runs_auto_basic_300_300.log','basic',num_runs=300,max_turns=300,verbose=False)
+	# simulation = Simulation('logs/runs_auto_basic_500_500.log','basic',num_runs=500,max_turns=500,verbose=False)
